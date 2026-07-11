@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Storage Test Page - Browser Storage Explorer</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f8f9fa;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+        p {
+            color: #666;
+            margin-bottom: 20px;
+        }
+        .button-group {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+        }
+        button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+        button:hover {
+            background: #5568d3;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        }
+        button:active {
+            transform: translateY(0);
+        }
+        .info-box {
+            background: #e3f2fd;
+            border-left: 4px solid #667eea;
+            padding: 15px;
+            border-radius: 6px;
+            margin-top: 20px;
+        }
+        .info-box h3 {
+            color: #1976d2;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+        .info-box p {
+            color: #495057;
+            margin: 5px 0;
+            font-size: 14px;
+        }
+        .info-box code {
+            background: #fff;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'SF Mono', Monaco, monospace;
+            font-size: 13px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Browser Storage Test Page</h1>
+        <p>Use this page to test the Browser Storage Explorer extension. Click the buttons below to add different types of storage data.</p>
+
+        <div class="button-group">
+            <button onclick="addLocalStorage()">Add Local Storage</button>
+            <button onclick="addSessionStorage()">Add Session Storage</button>
+            <button onclick="setCookie()">Set Cookie</button>
+            <button onclick="clearAll()">Clear All Storage</button>
+        </div>
+
+        <div class="info-box">
+            <h3>Current Storage Status</h3>
+            <p><strong>Local Storage Items:</strong> <span id="lsCount">0</span></p>
+            <p><strong>Session Storage Items:</strong> <span id="ssCount">0</span></p>
+            <p><strong>Cookies:</strong> <span id="cookieCount">0</span></p>
+            <p><strong>Last Action:</strong> <span id="lastAction">None</span></p>
+        </div>
+
+        <div class="info-box">
+            <h3>Instructions</h3>
+            <p>1. Click the buttons above to add storage data</p>
+            <p>2. Click the <strong>Browser Storage Explorer</strong> extension icon in your toolbar</p>
+            <p>3. View all storage items in the popup</p>
+            <p>4. Try searching, filtering, copying, and deleting items</p>
+        </div>
+    </div>
+
+    <script>
+        function updateStats() {
+            document.getElementById('lsCount').textContent = localStorage.length;
+            document.getElementById('ssCount').textContent = sessionStorage.length;
+            
+            // Count cookies
+            const cookies = document.cookie.split(';');
+            document.getElementById('cookieCount').textContent = cookies.length - 1; // -1 for empty string
+        }
+
+        function addLocalStorage() {
+            const id = Date.now();
+            const data = {
+                userId: id,
+                name: 'Test User ' + id,
+                email: 'test' + id + '@example.com',
+                preferences: {
+                    theme: 'light',
+                    notifications: true,
+                    language: 'en'
+                },
+                timestamp: new Date().toISOString()
+            };
+            
+            localStorage.setItem('user_' + id, JSON.stringify(data));
+            localStorage.setItem('app_config', JSON.stringify({
+                version: '1.0.0',
+                lastUpdated: new Date().toISOString()
+            }));
+            
+            document.getElementById('lastAction').textContent = 'Added localStorage items';
+            updateStats();
+        }
+
+        function addSessionStorage() {
+            const id = Date.now();
+            sessionStorage.setItem('session_' + id, 'Session data ' + id);
+            sessionStorage.setItem('temp_form', JSON.stringify({
+                name: 'John Doe',
+                email: 'john@example.com',
+                message: 'This is temporary session data'
+            }));
+            
+            document.getElementById('lastAction').textContent = 'Added sessionStorage items';
+            updateStats();
+        }
+
+        function setCookie() {
+            const id = Date.now();
+            const expires = new Date();
+            expires.setTime(expires.getTime() + (7 * 24 * 60 * 60 * 1000)); // 7 days
+            
+            document.cookie = 'test_cookie_' + id + '=cookie_value_' + id + '; expires=' + expires.toUTCString() + '; path=/';
+            document.cookie = 'session_id_' + id + '=session_' + id + '; path=/';
+            
+            document.getElementById('lastAction').textContent = 'Set cookies';
+            updateStats();
+        }
+
+        function clearAll() {
+            if (confirm('Clear all storage data? This will remove localStorage, sessionStorage, and cookies.')) {
+                localStorage.clear();
+                sessionStorage.clear();
+                
+                // Clear all cookies
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i];
+                    const eqPos = cookie.indexOf('=');
+                    const name = eqPos > -1 ? cookie.substr(0, eqPos).trim() : cookie.trim();
+                    document.cookie = name + '=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/';
+                }
+                
+                document.getElementById('lastAction').textContent = 'Cleared all storage';
+                updateStats();
+            }
+        }
+
+        // Initialize
+        updateStats();
+        
+        // Add some initial data
+        setTimeout(() => {
+            localStorage.setItem('welcome_message', 'Hello from Browser Storage Explorer!');
+            localStorage.setItem('user_preferences', JSON.stringify({
+                theme: 'light',
+                fontSize: 14,
+                notifications: true
+            }));
+            sessionStorage.setItem('page_visited', 'true');
+            updateStats();
+        }, 500);
+    </script>
+</body>
+</html>
