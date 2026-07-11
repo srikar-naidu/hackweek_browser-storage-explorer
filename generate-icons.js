@@ -113,7 +113,7 @@ function saveIcon(size) {
         fs.mkdirSync(iconsDir, { recursive: true });
     }
     
-    const filename = `icon${size}.png`;
+    const filename = `icon-${size}.png`;
     const filepath = path.join(iconsDir, filename);
     fs.writeFileSync(filepath, buffer);
     console.log(`✓ Generated ${filename}`);

@@ -47,16 +47,16 @@ JavaScript, HTML5, CSS3, Chrome Extension API, Manifest V3
 
 Before using the extension, you need to generate the icon files:
 
-1. Open `icons/icon-generator.html` in your web browser
-2. Click the "Download" buttons to save each icon size (16x16, 48x48, 128x128)
-3. Save the files as:
-   - `icon16.png`
-   - `icon48.png`
-   - `icon128.png`
-4. Place all three files in the `icons/` folder
-5. Delete the `icon-generator.html` file (optional)
+1. Install dependencies (if not already installed):
+   ```bash
+   npm install
+   ```
+2. Run the icon generator script:
+   ```bash
+   node generate-icons.js
+   ```
 
-**Alternative**: You can use any 16x16, 48x48, and 128x128 PNG images with a storage-related design.
+**Alternative**: You can use any 16x16, 48x48, and 128x128 PNG images with a storage-related design. Just name them `icon-16.png`, `icon-48.png`, and `icon-128.png` and place them in the `icons/` folder.
 
 ## Usage
 
@@ -94,12 +94,14 @@ browser-storage-explorer/
 ├── manifest.json          # Extension configuration
 ├── popup.html            # Popup UI structure
 ├── popup.css             # Styling and light theme
-├── popup.js              # Main functionality
+├── popup.js             # Main functionality
+├── generate-icons.js     # Icon generation script
+├── package.json         # Dependencies for icon generation
+├── test-page.html       # Test page to verify extension functionality
 ├── icons/
-│   ├── icon-generator.html  # Icon generation tool
-│   ├── icon16.png          # 16x16 icon (to be generated)
-│   ├── icon48.png          # 48x48 icon (to be generated)
-│   └── icon128.png         # 128x128 icon (to be generated)
+│   ├── icon-16.png          # 16x16 icon
+│   ├── icon-48.png          # 48x48 icon
+│   └── icon-128.png         # 128x128 icon
 └── README.md             # This file
 ```
 
@@ -143,8 +145,8 @@ browser-storage-explorer/
 ### Testing
 
 1. Load the extension in developer mode
-2. Visit any website that uses storage
-3. Open the extension popup
+2. Open `test-page.html` in your browser - this page will add sample storage data for testing
+3. Click the extension icon to open the popup
 4. Verify that storage items are displayed correctly
 5. Test search, filter, copy, delete, and export functions
 
