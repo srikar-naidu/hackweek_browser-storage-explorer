@@ -3,12 +3,13 @@ class StorageExplorer {
         this.storageItems = [];
         this.currentFilter = 'all';
         this.searchQuery = '';
+        this.activeTabUrl = null;
         this.init();
     }
 
-    init() {
+    async init() {
         this.attachEventListeners();
-        this.loadStorageData();
+        await this.loadStorageData();
     }
 
     attachEventListeners() {
@@ -45,52 +46,101 @@ class StorageExplorer {
         });
     }
 
-    async loadStorageData() {
-        this.storageItems = [];
-        this.loadLocalStorage();
-        this.loadSessionStorage();
-        await this.loadCookies();
-        this.updateStats();
-        this.renderStorageItems();
+    async getActiveTab() {
+        const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+        return tab;
     }
 
-    loadLocalStorage() {
+    async executeInTab(tabId, func, args) {
         try {
-            for (let i = 0; i < localStorage.length; i++) {
-                const key = localStorage.key(i);
-                const value = localStorage.getItem(key);
+            console.log('Executing script in tab', tabId, 'with args:', args);
+            const results = await chrome.scripting.executeScript({
+                target: { tabId: tabId },
+                func: func,
+                args: args
+            });
+            console.log('Script execution results:', results);
+            return results[0].result;
+        } catch (error) {
+            console.error('Error executing in tab:', error);
+            console.error('Error details:', JSON.stringify(error, null, 2));
+            return null;
+        }
+    }
+
+    async sendMessageToTab(tabId, action, data = {}) {
+        try {
+            const response = await chrome.tabs.sendMessage(tabId, { action, ...data });
+            return response;
+        } catch (error) {
+            console.error('Error sending message to tab:', error);
+            return null;
+        }
+    }
+
+    async loadStorageData() {
+        console.log('Starting loadStorageData...');
+        this.storageItems = [];
+        const tab = await this.getActiveTab();
+        console.log('Active tab:', tab);
+        if (!tab || !tab.url) {
+            console.log('No active tab or url');
+            this.renderStorageItems();
+            return;
+        }
+
+        this.activeTabUrl = new URL(tab.url);
+        console.log('Active tab URL:', this.activeTabUrl);
+
+        // Load localStorage using content script
+        console.log('Loading localStorage via content script...');
+        const localStorageResponse = await this.sendMessageToTab(tab.id, 'getLocalStorage');
+        console.log('localStorageResponse:', localStorageResponse);
+        if (localStorageResponse && localStorageResponse.success) {
+            const localStorageData = localStorageResponse.data;
+            console.log('localStorageData:', localStorageData);
+            Object.entries(localStorageData).forEach(([key, value]) => {
                 this.storageItems.push({
                     key: key,
                     value: value,
                     type: 'localStorage',
                     size: this.calculateSize(key + value)
                 });
-            }
-        } catch (error) {
-            console.error('Error loading localStorage:', error);
+            });
         }
-    }
 
-    loadSessionStorage() {
-        try {
-            for (let i = 0; i < sessionStorage.length; i++) {
-                const key = sessionStorage.key(i);
-                const value = sessionStorage.getItem(key);
+        // Load sessionStorage using content script
+        console.log('Loading sessionStorage via content script...');
+        const sessionStorageResponse = await this.sendMessageToTab(tab.id, 'getSessionStorage');
+        console.log('sessionStorageResponse:', sessionStorageResponse);
+        if (sessionStorageResponse && sessionStorageResponse.success) {
+            const sessionStorageData = sessionStorageResponse.data;
+            console.log('sessionStorageData:', sessionStorageData);
+            Object.entries(sessionStorageData).forEach(([key, value]) => {
                 this.storageItems.push({
                     key: key,
                     value: value,
                     type: 'sessionStorage',
                     size: this.calculateSize(key + value)
                 });
-            }
-        } catch (error) {
-            console.error('Error loading sessionStorage:', error);
+            });
         }
+
+        // Load cookies only for the active tab's domain
+        console.log('Loading cookies...');
+        await this.loadCookies();
+
+        console.log('Final storageItems:', this.storageItems);
+        this.updateStats();
+        this.renderStorageItems();
     }
 
     async loadCookies() {
+        if (!this.activeTabUrl) return;
         try {
-            const cookies = await chrome.cookies.getAll({});
+            const cookies = await chrome.cookies.getAll({
+                domain: this.activeTabUrl.hostname
+            });
             cookies.forEach(cookie => {
                 const cookieString = this.formatCookie(cookie);
                 this.storageItems.push({
@@ -245,10 +295,11 @@ class StorageExplorer {
         }
 
         try {
+            const tab = await this.getActiveTab();
             if (item.type === 'localStorage') {
-                localStorage.removeItem(item.key);
+                await this.sendMessageToTab(tab.id, 'removeLocalStorage', { key: item.key });
             } else if (item.type === 'sessionStorage') {
-                sessionStorage.removeItem(item.key);
+                await this.sendMessageToTab(tab.id, 'removeSessionStorage', { key: item.key });
             } else if (item.type === 'cookies' && item.cookie) {
                 await chrome.cookies.remove({
                     url: this.getCookieUrl(item.cookie),
@@ -280,15 +331,18 @@ class StorageExplorer {
             return;
         }
 
-        if (!confirm('This will delete all localStorage, sessionStorage, and cookies. Are you absolutely sure?')) {
+        if (!confirm('This will delete all localStorage, sessionStorage, and cookies for the current tab. Are you absolutely sure?')) {
             return;
         }
 
         try {
-            localStorage.clear();
-            sessionStorage.clear();
+            const tab = await this.getActiveTab();
+            await this.sendMessageToTab(tab.id, 'clearLocalStorage');
+            await this.sendMessageToTab(tab.id, 'clearSessionStorage');
 
-            const cookies = await chrome.cookies.getAll({});
+            const cookies = await chrome.cookies.getAll({
+                domain: this.activeTabUrl.hostname
+            });
             for (const cookie of cookies) {
                 await chrome.cookies.remove({
                     url: this.getCookieUrl(cookie),

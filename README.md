@@ -94,7 +94,8 @@ browser-storage-explorer/
 ├── manifest.json          # Extension configuration
 ├── popup.html            # Popup UI structure
 ├── popup.css             # Styling and light theme
-├── popup.js             # Main functionality
+├── popup.js             # Main popup functionality
+├── content.js            # Content script to interact with active tab's storage
 ├── generate-icons.js     # Icon generation script
 ├── package.json         # Dependencies for icon generation
 ├── test-page.html       # Test page to verify extension functionality
@@ -112,7 +113,8 @@ browser-storage-explorer/
   - `storage`: Access to browser storage APIs
   - `cookies`: Access to cookie data
   - `activeTab`: Access to current tab data
-- **Host Permissions**: `<all_urls>` (required to access cookies on any website)
+  - `scripting`: Inject scripts into active tab
+- **Host Permissions**: `<all_urls>` (required to access cookies and storage on any website)
 
 ## Browser Compatibility
 
